@@ -1,0 +1,198 @@
+Database Mapplng
+
+Unit Objectives
+
+After you complete this you will be able to:
+
+- How to read and understand ﬁles in /var/cpanel/databases.
+- How to identify the interfaces that update files in /var/cpanel/databases.
+- How to fix 'dbindex cache ﬁle is out of date’issues.
+- How to use command line tools for interacting with /var/cpanel/databases.
+
+TERMS
+
+grant: Giving permission to perform specific actions on a database table to a specific user
+
+host: A specific computer.
+
+
+What Is DB Mapping?
+
+A database map is one method of associating users with databases (and vice versa). The map is a data structure used to associate items to each other. Previously, cPanel used prefixing to accomplish this.
+
+Prefixing is still available, but it's no longer used as the method of determining which database belongs to which user. Now cPanel uses a few mapping structures that it stores within the file system.
+
+
+The database map that cPanel users are kept on disk is located Within the /var/cpanel/databases folder.
+
+This folder wlll potentially consist of:
+- A JSON file for each cPahel user that contains the list of databases belonglhg to the user
+- A YAML ﬁle for each cPanel user that contains the grants that allow the database users associated with that cPahel user
+to access the databases and associated cache.
+- A users.db file that lists host and what database users are associated with them and a user.db.cache file that contains
+the same information in a more compact format.
+- A dbindex.db.json ﬁle that contains a list or databases along with the cPahel user that is associated with it,
+
+ll /var/cpanel/databases/
+total 60
+drwxr-x--x   2 root root    4096 Jan  2 00:33 ./
+drwx--x--x 101 root root   12288 Jan  2 00:32 ../
+-rw-r-----   1 root cpanel   115 Jun 13  2015 cpanel.cache
+-rw-r-----   1 root cpanel    94 Jun 13  2015 cpanel.yaml
+-rw-------   1 root root      51 Jun 17  2015 dbindex.db
+-rw-------   1 root root      66 Jun 17  2015 dbindex.db.cache
+-rw-------   1 root root      81 Jan  2 00:15 dbindex.db.json
+-rw-------   1 root root      44 Jun 11  2016 dbindex.db.json.1465638281.bak
+-rw-------   1 root root    2709 Sep  3 08:52 grants_cpaneluser.cache
+-rw-------   1 root root    2876 Sep  3 08:52 grants_cpaneluser.yaml
+-rw-r-----   1 root cpaneluser   463 Sep 18 08:33 cpaneluser.json
+-rw-------   1 root root     443 Jan  2 00:30 users.db
+-rw-------   1 root root     424 Jan  2 00:30 users.db.cache
+
+
+In 11.50, the file format format charged from YAML to JSON. On occation, you may come across a leftover YAML files, these are harmless, but can be removed if desired.
+
+
+The files that you’re most likely to need to manipulate are the YAML and JSON files. The YAML
+files are easier to read. They look like this:
+
+========== Start of Example
+#cat /var/cpanel/databases/grants_cpuser.yaml
+--- 
+MYSQL: 
+  cpuser: 
+    cpuser: 
+      - GRANT USAGE ON *.* TO 'cpuser'@'192.185.8.87' IDENTIFIED BY PASSWORD '*0B75BAE6194A9A764311E89E751E89B726039F7E'
+      - GRANT ALL PRIVILEGES ON `cpuser\_morgan`.* TO 'cpuser'@'192.185.8.87'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser'@'192.185.8.87'
+      - GRANT ALL PRIVILEGES ON `cpuser\_test`.* TO 'cpuser'@'192.185.8.87'
+      - GRANT ALL PRIVILEGES ON `cpuser\_cg57`.* TO 'cpuser'@'192.185.8.87'
+      - GRANT USAGE ON *.* TO 'cpuser'@'localhost' IDENTIFIED BY PASSWORD '*0B75BAE6194A9A764311E89E751E89B726039F7E'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser'@'localhost'
+      - GRANT ALL PRIVILEGES ON `cpuser\_cg57`.* TO 'cpuser'@'localhost'
+      - GRANT ALL PRIVILEGES ON `cpuser\_test`.* TO 'cpuser'@'localhost'
+      - GRANT ALL PRIVILEGES ON `cpuser\_morgan`.* TO 'cpuser'@'localhost'
+      - GRANT USAGE ON *.* TO 'cpuser'@'ric.r713.com' IDENTIFIED BY PASSWORD '*0B75BAE6194A9A764311E89E751E89B726039F7E'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser'@'ric.r713.com'
+      - GRANT ALL PRIVILEGES ON `cpuser\_morgan`.* TO 'cpuser'@'ric.r713.com'
+      - GRANT ALL PRIVILEGES ON `cpuser\_test`.* TO 'cpuser'@'ric.r713.com'
+      - GRANT ALL PRIVILEGES ON `cpuser\_cg57`.* TO 'cpuser'@'ric.r713.com'
+    cpuser_cg576575: 
+      - GRANT USAGE ON *.* TO 'cpuser_cg576575'@'192.185.8.87' IDENTIFIED BY PASSWORD '*F7ECD4EF140017D2EC9772A160E1E39DB52B28A7'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser_cg576575'@'192.185.8.87'
+      - GRANT ALL PRIVILEGES ON `cpuser\_cg57`.* TO 'cpuser_cg576575'@'192.185.8.87'
+      - GRANT USAGE ON *.* TO 'cpuser_cg576575'@'localhost' IDENTIFIED BY PASSWORD '*F7ECD4EF140017D2EC9772A160E1E39DB52B28A7'
+      - GRANT ALL PRIVILEGES ON `cpuser\_cg57`.* TO 'cpuser_cg576575'@'localhost'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser_cg576575'@'localhost'
+      - GRANT USAGE ON *.* TO 'cpuser_cg576575'@'ric.r713.com' IDENTIFIED BY PASSWORD '*F7ECD4EF140017D2EC9772A160E1E39DB52B28A7'
+      - GRANT ALL PRIVILEGES ON `cpuser\_cg57`.* TO 'cpuser_cg576575'@'ric.r713.com'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser_cg576575'@'ric.r713.com'
+    cpuser_wrdp1: 
+      - GRANT USAGE ON *.* TO 'cpuser_wrdp1'@'192.185.8.87' IDENTIFIED BY PASSWORD '*14D4A96DF783B9EFC9C9C4223C82436FDDFA0C27'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser_wrdp1'@'192.185.8.87'
+      - GRANT USAGE ON *.* TO 'cpuser_wrdp1'@'localhost' IDENTIFIED BY PASSWORD '*14D4A96DF783B9EFC9C9C4223C82436FDDFA0C27'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser_wrdp1'@'localhost'
+      - GRANT USAGE ON *.* TO 'cpuser_wrdp1'@'ric.r713.com' IDENTIFIED BY PASSWORD '*14D4A96DF783B9EFC9C9C4223C82436FDDFA0C27'
+      - GRANT ALL PRIVILEGES ON `cpuser\_wrdp1`.* TO 'cpuser_wrdp1'@'ric.r713.com'
+PGSQL: {}
+========== End of Example
+
+You can see several things here:
+
+The cPanel user cpusers owns both databases - cpuser_wrdp1 and cpuser_cg576575.
+The cPanel user has access to all the tables in all databases.
+The default (and only) host is localhost.
+There are two database users associated with the cpusers account.
+The database user cpuser_wrdp1 has only access to the cpuser_wrdp1 database.
+
+There are no postgresql databases (indeed postgresql isn't even Installed on this server).
+
+============
+============
+
+The JSON files are harder to read, but can be formatted with a simple piped command:
+
+cat user.json | python —m json.tool
+
+It results in a ﬁle that looks like this:
+
+==== Start of Example
+# python -m json.tool unr713.json 
+{
+    "MYSQL": {
+        "dbs": {
+            "cpuser_cg57": "192.168.1.1", 
+            "cpuser_test": "192.168.1.1", 
+            "cpuser_wrdp1": "192.168.1.1"
+        }, 
+        "dbusers": {
+            "cpuser_cg576575": {
+                "dbs": {
+                    "cpuser_cg57": "192.168.1.1", 
+                    "cpuser_wrdp1": "192.168.1.1"
+                }, 
+                "server": "192.168.1.1"
+            }, 
+            "cpuser_wrdp1": {
+                "dbs": {
+                    "cpuser_wrdp1": "192.168.1.1"
+                }, 
+                "server": "192.168.1.1"
+            }
+        }, 
+        "noprefix": {}, 
+        "owner": "cpuser", 
+        "server": "192.168.1.1"
+    }, 
+    "PGSQL": {
+        "dbs": {}, 0
+        "dbusers": {}, 
+        "noprefix": {}, 
+        "owner": "cpuser", 
+        "server": "192.168.1.1"
+    }, 
+    "version": 1
+}
+=== End of Example
+
+
+JSON stands for Jvascript object notion, and was created to use as a lightweight method of storing application data.
+
+  
+From this file you (an see that:
+
+- The user has two databases/
+- The user has two database users associated with both databases.
+- Neither user is associated with either database
+
+The user cpses_####### is a special user, It's created and destroyed automatitally by cPanel. It allows access to phpMyAdmin without requiring a second login, or storing the cPanel password unsecured.
+
+
+Utility 
+
+Path: /usr/local/cpanel/bin
+
+dbindex : Creates dbindex.db flle from Information ln /etc/dbowners. Runs every other hour via cronjob.
+
+dbmaptool : Command line equivalent of WHM'S Database Map Tool Interface. Modifies JSON, but doesn't perform SQL actoions.
+
+dbstoregrants : Creates grunts_cpuser.yaml ﬁles from existing SQL grants. Executed at data base creatoin, deletion, or when host access is granted/revoked for a database resource.
+
+mysqluserstore : Stores host and user lnfo ln the users.db ﬁle. It runs at database user creation and every other hour via cron job.
+
+restoregrants : Reads the grants_cpuser.yaml ﬁle and adds grants to MySQL accordingly.
+
+setupdbmap : Runs durlng upcp, and is responslble for initial setup of DB mapplng, as well as any updates that occur between versions. Though it is often recommended online, this scripts is not helpful on a server that is not upgrading to a version that lncludes DB mapplng changes.
+
+
+
+Related Notifications
+
+If the dbindex.db.json file is incomplete, the dbindex script will not compiete successfully. It will instead output an error stating that "the dbindex cache fiie is out of date”. Since this task runs as a cron job, the systems administrator will receive an email notification with this message.
+
+The best way to resolve this issue is to restore a dbindex.db.ison file from a backup. Another possible solution, though potentially tedious, is to move the fiie out of the way and manually re-associate the databases with their cPanel accounts.
+
+
+
+
+
